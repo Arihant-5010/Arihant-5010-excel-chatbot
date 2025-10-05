@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Excel Keyword Bot - Full Formulas</title>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; background: #74ebd5; display:flex; justify-content:center; align-items:center; height:100vh; margin:0;}
+  .chatbot-container { width:450px; background:white; border-radius:20px; box-shadow:0 8px 20px rgba(0,0,0,0.2); display:flex; flex-direction:column; overflow:hidden;}
+  .chat-header { background: #2575fc; color:white; text-align:center; padding:15px; font-weight:bold;}
+  .chat-body { flex:1; padding:15px; display:flex; flex-direction:column; gap:10px; overflow-y:auto; height:400px;}
+  .chat-input { display:flex; padding:10px; background:#f1f1f1;}
+  .chat-input input { flex:1; padding:10px; border-radius:20px; border:1px solid #ccc;}
+  .chat-input button { margin-left:10px; padding:10px 20px; border:none; border-radius:20px; background:#2575fc; color:white; cursor:pointer;}
+  .message { max-width:80%; padding:10px 15px; border-radius:15px; font-size:14px; line-height:1.4;}
+  .user { background:#2575fc; color:white; align-self:flex-end; border-bottom-right-radius:0;}
+  .bot { background:#e0e0e0; color:#333; align-self:flex-start; border-bottom-left-radius:0; white-space:pre-wrap;}
+</style>
+</head>
+<body>
+
+<div class="chatbot-container">
+  <div class="chat-header">Excel Keyword Bot</div>
+  <div class="chat-body" id="chatBody">
+    <div class="bot message">Type any keyword like "add", "vlookup", "sumif" to get formulas 😊</div>
+  </div>
+  <div class="chat-input">
+    <input type="text" id="query" placeholder="Enter keyword...">
+    <button onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<script>
+const formulaDB = [
+  // 1. Mathematical
+  { keyword: "add", formula: "A1 + B1", example: "=A1 + B1", explanation: "Adds two numbers." },
+  { keyword: "sum", formula: "SUM(RANGE)", example: "=SUM(B2:B10)", explanation: "Adds all numbers in the range." },
+  { keyword: "sumif", formula: "SUMIF(RANGE,\">VALUE\")", example: "=SUMIF(B2:B10,\">100\")", explanation: "Sum if condition is met." },
+  { keyword: "average", formula: "AVERAGE(RANGE)", example: "=AVERAGE(B2:B10)", explanation: "Calculates average of numbers." },
+  { keyword: "averageif", formula: "AVERAGEIF(RANGE,\"<>\")", example: "=AVERAGEIF(B2:B10,\"<>\")", explanation: "Average excluding blanks." },
+  { keyword: "round", formula: "ROUND(NUM,2)", example: "=ROUND(B2,2)", explanation: "Rounds number to 2 decimals." },
+  { keyword: "roundup", formula: "ROUNDUP(NUM,0)", example: "=ROUNDUP(B2,0)", explanation: "Rounds number up." },
+  { keyword: "rounddown", formula: "ROUNDDOWN(NUM,0)", example: "=ROUNDDOWN(B2,0)", explanation: "Rounds number down." },
+  { keyword: "min", formula: "MIN(RANGE)", example: "=MIN(B2:B10)", explanation: "Finds minimum value." },
+  { keyword: "max", formula: "MAX(RANGE)", example: "=MAX(B2:B10)", explanation: "Finds maximum value." },
+
+  // 2. Text
+  { keyword: "concat", formula: "CONCAT(A1,B1) or &", example: "=A1 & \" \" & B1", explanation: "Combine text." },
+  { keyword: "join", formula: "CONCAT(A1,B1) or &", example: "=A1 & \" \" & B1", explanation: "Join text from cells." },
+  { keyword: "left", formula: "LEFT(A1,N)", example: "=LEFT(B2,3)", explanation: "Extract first N characters." },
+  { keyword: "right", formula: "RIGHT(A1,N)", example: "=RIGHT(B2,4)", explanation: "Extract last N characters." },
+  { keyword: "mid", formula: "MID(A1,START,LENGTH)", example: "=MID(B2,2,3)", explanation: "Extract from middle of text." },
+  { keyword: "len", formula: "LEN(A1)", example: "=LEN(B2)", explanation: "Count characters." },
+  { keyword: "trim", formula: "TRIM(A1)", example: "=TRIM(B2)", explanation: "Remove extra spaces." },
+  { keyword: "upper", formula: "UPPER(A1)", example: "=UPPER(B2)", explanation: "Convert text to uppercase." },
+  { keyword: "lower", formula: "LOWER(A1)", example: "=LOWER(B2)", explanation: "Convert text to lowercase." },
+  { keyword: "proper", formula: "PROPER(A1)", example: "=PROPER(B2)", explanation: "Capitalize first letter." },
+  { keyword: "text", formula: "TEXT(A1,\"format\")", example: "=TEXT(C2,\"$#,##0.00\")", explanation: "Format numbers or dates." },
+
+  // 3. Logical
+  { keyword: "if", formula: "IF(CONDITION, TRUE_VALUE, FALSE_VALUE)", example: "=IF(B2>100,\"High\",\"Low\")", explanation: "Conditional check." },
+  { keyword: "and", formula: "AND(CONDITION1, CONDITION2)", example: "=AND(B2>50,C2<100)", explanation: "Both conditions must be true." },
+  { keyword: "or", formula: "OR(CONDITION1, CONDITION2)", example: "=OR(B2>50,C2<100)", explanation: "Any condition is true." },
+  { keyword: "iferror", formula: "IFERROR(EXPRESSION, \"Error\")", example: "=IFERROR(A2/B2,\"0\")", explanation: "Handle errors." },
+
+  // 4. Lookup
+  { keyword: "vlookup", formula: "VLOOKUP(lookup_value, table, col_index, FALSE)", example: "=VLOOKUP(101,A2:C10,3,FALSE)", explanation: "Look up value in first column." },
+  { keyword: "hlookup", formula: "HLOOKUP(lookup_value, table, row_index, FALSE)", example: "=HLOOKUP(\"Jan\",A1:D5,2,FALSE)", explanation: "Look up value in first row." },
+  { keyword: "index", formula: "INDEX(RANGE, MATCH(lookup_value, lookup_range, 0))", example: "=INDEX(B2:D10,3,2)", explanation: "Return value using index/match." },
+  { keyword: "xlookup", formula: "XLOOKUP(lookup_value, lookup_array, return_array, [if_not_found])", example: "=XLOOKUP(101,A2:A10,C2:C10,\"Not Found\")", explanation: "Modern lookup function." },
+
+  // 5. Date/Time
+  { keyword: "today", formula: "TODAY()", example: "=TODAY()", explanation: "Current date." },
+  { keyword: "now", formula: "NOW()", example: "=NOW()", explanation: "Current date & time." },
+  { keyword: "date", formula: "DATE(YEAR,MONTH,DAY)", example: "=DATE(2025,10,5)", explanation: "Create a date." },
+  { keyword: "day", formula: "DAY(A1)", example: "=DAY(B2)", explanation: "Get day from date." },
+  { keyword: "month", formula: "MONTH(A1)", example: "=MONTH(B2)", explanation: "Get month from date." },
+  { keyword: "year", formula: "YEAR(A1)", example: "=YEAR(B2)", explanation: "Get year from date." },
+  { keyword: "networkdays", formula: "NETWORKDAYS(start,end)", example: "=NETWORKDAYS(A2,B2)", explanation: "Count working days." },
+  { keyword: "edate", formula: "EDATE(A1, months)", example: "=EDATE(B2,6)", explanation: "Add months to a date." },
+
+  // 6. Financial
+  { keyword: "pmt", formula: "PMT(rate,nper,pv)", example: "=PMT(0.08/12,12*5,500000)", explanation: "Loan payment calculation." },
+  { keyword: "fv", formula: "FV(rate,nper,pmt)", example: "=FV(0.05,10,0,-1000)", explanation: "Future value." },
+  { keyword: "npv", formula: "NPV(rate,value1,value2,...)", example: "=NPV(0.1,B2:B10)", explanation: "Net present value." },
+  { keyword: "pv", formula: "PV(rate,nper,pmt)", example: "=PV(0.08,5,1000)", explanation: "Present value." },
+
+  // 7. Statistical
+  { keyword: "count", formula: "COUNT(RANGE)", example: "=COUNT(B2:B10)", explanation: "Count numbers." },
+  { keyword: "counta", formula: "COUNTA(RANGE)", example: "=COUNTA(B2:B10)", explanation: "Count non-empty cells." },
+  { keyword: "countif", formula: "COUNTIF(RANGE,CONDITION)", example: "=COUNTIF(B2:B10,\">100\")", explanation: "Count if condition met." },
+  { keyword: "countifs", formula: "COUNTIFS(RANGE1,CONDITION1,RANGE2,CONDITION2)", example: "=COUNTIFS(B2:B10,\">50\",C2:C10,\"<200\")", explanation: "Count if multiple conditions met." },
+  { keyword: "rank", formula: "RANK(NUM,RANGE,0)", example: "=RANK(B2,B$2:B$10,0)", explanation: "Rank numbers in range." },
+  { keyword: "stdev", formula: "STDEV.S(RANGE)", example: "=STDEV.S(B2:B10)", explanation: "Sample standard deviation." },
+  { keyword: "stdevp", formula: "STDEV.P(RANGE)", example: "=STDEV.P(B2:B10)", explanation: "Population standard deviation." },
+
+  // 8. Others
+  { keyword: "unique", formula: "UNIQUE(RANGE)", example: "=UNIQUE(A2:A20)", explanation: "Get unique values." },
+  { keyword: "filter", formula: "FILTER(RANGE, CONDITION)", example: "=FILTER(A2:A20, B2:B20>100)", explanation: "Filter data based on condition." }
+];
+
+const chatBody = document.getElementById('chatBody');
+
+function sendMessage() {
+  let query = document.getElementById('query').value.trim().toLowerCase();
+  if(query === "") return;
+
+  const userMsg = document.createElement('div');
+  userMsg.className = 'message user';
+  userMsg.textContent = query;
+  chatBody.appendChild(userMsg);
+  document.getElementById('query').value = '';
+  chatBody.scrollTop = chatBody.scrollHeight;
+
+  setTimeout(() => {
+    const botMsg = document.createElement('div');
+    botMsg.className = 'message bot';
+    let matched = formulaDB.filter(item => item.keyword.includes(query));
+    if(matched.length > 0) {
+      botMsg.textContent = matched.map(m => `💡 Formula: ${m.formula}\n📝 Example: ${m.example}\n🗒 Explanation: ${m.explanation}`).join("\n\n");
+    } else {
+      botMsg.textContent = "No formula found for this keyword!";
+    }
+    chatBody.appendChild(botMsg);
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }, 300);
+}
+
+document.getElementById('query').addEventListener('keypress', function(e){
+    if(e.key === 'Enter') sendMessage();
+});
+</script>
+
+</body>
+</html>
